@@ -1,0 +1,12 @@
+{
+  // Cloudflare Worker 静态站点部署配置
+  // 部署：npm run deploy
+  //   需先在本机执行一次 `npx wrangler login` 登录 Cloudflare，
+  //   或设置环境变量 CLOUDFLARE_API_TOKEN（与 CLOUDFLARE_ACCOUNT_ID）。
+  "name": "image-splice",
+  "compatibility_date": "2024-11-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
