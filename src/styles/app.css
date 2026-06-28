@@ -693,6 +693,20 @@ input[type='file'] {
   display: none;
 }
 
+/* 折叠分组标题：箭头指示展开(▾)/收起(▸)状态 */
+.panel details > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 0.85em;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.panel details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
 .settings-block {
   margin-bottom: 1.5rem;
 }
@@ -1802,23 +1816,6 @@ input[type='color']::-webkit-color-swatch {
 
 .cl-sidebar-inner {
   padding: 1.5rem;
-}
-
-.cl-back {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--accent-on-light);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.cl-back:hover {
-  text-decoration: underline;
 }
 
 .cl-context {

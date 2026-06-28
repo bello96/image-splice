@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Nav from './components/Nav'
 import Toast from './components/Toast'
 import CollageTool from './components/CollageTool'
@@ -14,7 +14,7 @@ import CustomLayoutTool from './components/CustomLayoutTool'
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Nav />
       <Routes>
         <Route path="/" element={<CollageTool />} />
@@ -29,6 +29,6 @@ export default function App() {
         <Route path="/tools/beads" element={<BeadsTool />} />
       </Routes>
       <Toast />
-    </HashRouter>
+    </BrowserRouter>
   )
 }

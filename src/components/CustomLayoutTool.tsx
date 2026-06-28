@@ -7,8 +7,6 @@ import type { LayoutDef } from '../data/layouts'
 const UNIT = 60
 const MIN_GRID = 1
 const MAX_GRID = 12
-/** 提交布局的留言页（原站作者收集入口） */
-const SUBMIT_URL = 'https://blog.ops-coffee.com/img-custom-layout.html'
 
 /** 编辑器内部方块模型：r/c 为 0 基行列位置，width=列跨度，height=行跨度 */
 interface Block {
@@ -234,17 +232,6 @@ export default function CustomLayoutTool() {
     navigate('/')
   }
 
-  /** 提交布局给作者：复制 JSON 并打开留言页 */
-  const submitLayout = async () => {
-    try {
-      await navigator.clipboard.writeText(jsonStr)
-      showToast('布局 JSON 已复制到剪贴板，请粘贴到留言中提交给作者', 'info')
-      window.open(SUBMIT_URL, '_blank', 'noopener,noreferrer')
-    } catch {
-      showToast('复制失败，请手动复制', 'error')
-    }
-  }
-
   /** 导入布局 JSON */
   const importLayout = () => {
     try {
@@ -358,9 +345,6 @@ export default function CustomLayoutTool() {
       {/* 左侧：布局设置 */}
       <aside className="cl-sidebar cl-left" hidden={leftCollapsed}>
         <div className="cl-sidebar-inner">
-          <button type="button" className="cl-back" onClick={() => navigate('/')}>
-            ← 返回拼图
-          </button>
           <h3 className="panel-section-title">布局设置</h3>
           {fromGroup ? <p className="cl-context">来自「{fromGroup} 张图片」分组</p> : null}
           <div className="cl-field">
@@ -385,7 +369,7 @@ export default function CustomLayoutTool() {
               onChange={(e) => setColInput(e.target.value)}
             />
           </div>
-          <button type="button" className="action-button cl-block-btn" onClick={initGrid}>
+          <button type="button" className="action-button secondary cl-block-btn" onClick={initGrid}>
             初始化网格
           </button>
 
@@ -398,7 +382,7 @@ export default function CustomLayoutTool() {
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
             />
-            <button type="button" className="action-button cl-block-btn" onClick={importLayout}>
+            <button type="button" className="action-button secondary cl-block-btn" onClick={importLayout}>
               导入
             </button>
           </details>
@@ -483,9 +467,6 @@ export default function CustomLayoutTool() {
           <textarea className="cl-json" readOnly rows={14} value={jsonStr} />
           <button type="button" className="action-button primary cl-block-btn" onClick={useThisLayout}>
             使用此布局拼图
-          </button>
-          <button type="button" className="action-button secondary cl-block-btn" onClick={submitLayout}>
-            提交布局给作者
           </button>
         </div>
       </aside>
