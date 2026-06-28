@@ -77,7 +77,7 @@ export async function downloadCollage(quality: Quality, bgColor: string): Promis
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `haopin-collage-${timestamp()}.${ext}`
+  a.download = `tushengshi-${timestamp()}.${ext}`
   document.body.appendChild(a)
   a.click()
   a.remove()

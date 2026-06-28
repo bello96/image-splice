@@ -76,7 +76,7 @@ export default function Nav() {
       <div className="nav-title">
         <Link to="/">
           <GridIcon className="nav-icon" style={{ color: 'var(--primary-accent)' }} />
-          <span>好拼 - 免费在线拼图工具</span>
+          <span>图省事 - 在线图片工具箱</span>
         </Link>
       </div>
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   好拼 - 拼图工具 组件样式
+   图省事 - 在线图片工具箱 组件样式
    设计令牌与功能性布局规则
    ============================================================ */
 
@@ -698,7 +698,9 @@ input[type='file'] {
   content: '▸';
   display: inline-block;
   margin-right: 0.5rem;
-  font-size: 0.85em;
+  font-size: 1.35em;
+  line-height: 1;
+  vertical-align: -0.08em;
   color: var(--text-muted);
   transition: transform 0.2s ease;
 }

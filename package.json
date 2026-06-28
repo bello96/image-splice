@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "好拼 - 免费在线拼图工具（React + Vite + TailwindCSS 复刻版）",
+  "description": "图省事 - 在线图片工具箱（React + Vite + TailwindCSS）",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
