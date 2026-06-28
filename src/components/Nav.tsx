@@ -11,7 +11,7 @@ import {
   SplitIcon,
   StitchIcon,
   WatermarkRemoveIcon,
-  CustomLayoutIcon,
+  BeadsIcon,
 } from '../lib/icons'
 
 interface ToolItem {
@@ -22,7 +22,6 @@ interface ToolItem {
 
 const TOOLS: ToolItem[] = [
   { label: '布局拼图', to: '/', icon: <GridIcon size={24} /> },
-  { label: '自定义布局', to: '/custom-layout', icon: <CustomLayoutIcon size={24} /> },
   { label: '长图拼接', to: '/tools/stitching', icon: <StitchIcon size={24} /> },
   { label: '图片分割', to: '/tools/split', icon: <SplitIcon size={24} /> },
   { label: '图片压缩', to: '/tools/compress', icon: <CompressIcon size={24} /> },
@@ -30,6 +29,7 @@ const TOOLS: ToolItem[] = [
   { label: '图片圆角', to: '/tools/corner', icon: <RoundIcon size={24} /> },
   { label: '调整大小', to: '/tools/resize', icon: <ResizeIcon size={24} /> },
   { label: '去除水印', to: '/tools/watermark', icon: <WatermarkRemoveIcon size={24} /> },
+  { label: '拼豆图', to: '/tools/beads', icon: <BeadsIcon size={24} /> },
 ]
 
 export default function Nav() {

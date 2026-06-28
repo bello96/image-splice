@@ -220,6 +220,17 @@ export const WatermarkRemoveIcon = (p: SVGProps<SVGSVGElement> & { size?: number
   </Icon>
 )
 
+/** 拼豆图：豆子点阵（梅花五点） */
+export const BeadsIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <circle cx="6" cy="6" r="2.4" />
+    <circle cx="18" cy="6" r="2.4" />
+    <circle cx="12" cy="12" r="2.4" />
+    <circle cx="6" cy="18" r="2.4" />
+    <circle cx="18" cy="18" r="2.4" />
+  </Icon>
+)
+
 /* 水印密度位置图标（5 个角/中心方向） */
 export const DensityIcon = ({
   pos,

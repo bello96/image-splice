@@ -9,6 +9,7 @@ import CropTool from './components/tools/CropTool'
 import CornerTool from './components/tools/CornerTool'
 import ResizeTool from './components/tools/ResizeTool'
 import WatermarkTool from './components/tools/WatermarkTool'
+import BeadsTool from './components/tools/BeadsTool'
 import CustomLayoutTool from './components/CustomLayoutTool'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/tools/corner" element={<CornerTool />} />
         <Route path="/tools/resize" element={<ResizeTool />} />
         <Route path="/tools/watermark" element={<WatermarkTool />} />
+        <Route path="/tools/beads" element={<BeadsTool />} />
       </Routes>
       <Toast />
     </HashRouter>
