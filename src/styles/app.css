@@ -1845,9 +1845,9 @@ input[type='color']::-webkit-color-swatch {
   min-width: 0;
   padding: 0.7rem 1rem;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background-color: #2d3748;
-  color: #fff;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
   font-family: var(--font-sans);
@@ -1945,7 +1945,7 @@ input[type='color']::-webkit-color-swatch {
 .cl-grid {
   position: relative;
   flex-shrink: 0;
-  background-color: #2d3748;
+  background-color: #d9dce2;
   border-radius: var(--radius-sm);
   user-select: none;
 }
@@ -1954,8 +1954,8 @@ input[type='color']::-webkit-color-swatch {
   position: absolute;
   width: 60px;
   height: 60px;
-  background-color: #1a202c;
-  border: 0.8px dashed #4a5568;
+  background-color: #f6f7f9;
+  border: 0.8px dashed #c4cad3;
   border-radius: 3px;
   cursor: pointer;
   touch-action: none;
@@ -1963,7 +1963,7 @@ input[type='color']::-webkit-color-swatch {
 }
 
 .cl-cell:hover {
-  background-color: #232c3d;
+  background-color: #e9ebf0;
 }
 
 .cl-block {
@@ -1992,16 +1992,21 @@ input[type='color']::-webkit-color-swatch {
 
 .cl-resizer {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 18px;
-  height: 18px;
-  background-color: #1f2937;
-  border: 1px solid var(--primary-accent-hover);
-  border-radius: 4px;
+  right: -5px;
+  bottom: -5px;
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border: 1.5px solid var(--primary-accent-hover);
+  border-radius: var(--radius-sm);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2302b357' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='5 11 5 5 11 5'/%3E%3Cpolyline points='19 13 19 19 13 19'/%3E%3Cline x1='5' y1='5' x2='19' y2='19'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
   cursor: se-resize;
   z-index: 11;
   touch-action: none;
+  box-shadow: 0 1px 3px rgba(9, 30, 66, 0.3);
 }
 
 .cl-hint {
