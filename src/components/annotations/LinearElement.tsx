@@ -1,15 +1,15 @@
 import { type CSSProperties, useRef } from 'react'
-import { useStore, type ArrowEl } from '../../store/useStore'
+import { useStore, type LinearEl } from '../../store/useStore'
 
 interface Props {
-  el: ArrowEl
+  el: LinearEl
 }
 
-export default function ArrowElement({ el }: Props) {
-  const selected = useStore((s) => s.selectedArrowId === el.id)
-  const selectArrow = useStore((s) => s.selectArrow)
-  const updateArrow = useStore((s) => s.updateArrow)
-  const deleteArrow = useStore((s) => s.deleteArrow)
+export default function LinearElement({ el }: Props) {
+  const selected = useStore((s) => s.selectedLinearId === el.id)
+  const selectLinear = useStore((s) => s.selectLinear)
+  const updateLinear = useStore((s) => s.updateLinear)
+  const deleteLinear = useStore((s) => s.deleteLinear)
   const draggingRef = useRef(false)
 
   const pad = Math.max(20, el.strokeWidth * 3 + 14)
@@ -24,7 +24,7 @@ export default function ArrowElement({ el }: Props) {
   const lx2 = el.x2 - minX
   const ly2 = el.y2 - minY
 
-  // 箭头头部多边形
+  const isArrow = el.kind === 'arrow'
   const angle = Math.atan2(ly2 - ly1, lx2 - lx1)
   const headLen = Math.max(14, el.strokeWidth * 3.2)
   const headW = Math.max(10, el.strokeWidth * 2.4)
@@ -34,6 +34,9 @@ export default function ArrowElement({ el }: Props) {
   const leftY = hy + headW * Math.sin(angle + Math.PI / 2)
   const rightX = hx + headW * Math.cos(angle - Math.PI / 2)
   const rightY = hy + headW * Math.sin(angle - Math.PI / 2)
+  // 箭头时线画到箭头根部，直线时画到端点
+  const lineEndX = isArrow ? hx : lx2
+  const lineEndY = isArrow ? hy : ly2
 
   const containerStyle: CSSProperties = {
     left: minX,
@@ -47,7 +50,7 @@ export default function ArrowElement({ el }: Props) {
       return
     }
     e.stopPropagation()
-    selectArrow(el.id)
+    selectLinear(el.id)
     draggingRef.current = true
     const sx = e.clientX
     const sy = e.clientY
@@ -55,7 +58,7 @@ export default function ArrowElement({ el }: Props) {
     const onMove = (ev: PointerEvent) => {
       const dx = ev.clientX - sx
       const dy = ev.clientY - sy
-      updateArrow(el.id, { x1: o.x1 + dx, y1: o.y1 + dy, x2: o.x2 + dx, y2: o.y2 + dy })
+      updateLinear(el.id, { x1: o.x1 + dx, y1: o.y1 + dy, x2: o.x2 + dx, y2: o.y2 + dy })
     }
     const onUp = () => {
       draggingRef.current = false
@@ -69,7 +72,7 @@ export default function ArrowElement({ el }: Props) {
   const moveEndpoint = (which: 1 | 2) => (e: React.PointerEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    selectArrow(el.id)
+    selectLinear(el.id)
     const sx = e.clientX
     const sy = e.clientY
     const ox = which === 1 ? el.x1 : el.x2
@@ -77,7 +80,7 @@ export default function ArrowElement({ el }: Props) {
     const onMove = (ev: PointerEvent) => {
       const nx = ox + (ev.clientX - sx)
       const ny = oy + (ev.clientY - sy)
-      updateArrow(el.id, which === 1 ? { x1: nx, y1: ny } : { x2: nx, y2: ny })
+      updateLinear(el.id, which === 1 ? { x1: nx, y1: ny } : { x2: nx, y2: ny })
     }
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
@@ -97,13 +100,15 @@ export default function ArrowElement({ el }: Props) {
         <line
           x1={lx1}
           y1={ly1}
-          x2={hx}
-          y2={hy}
+          x2={lineEndX}
+          y2={lineEndY}
           stroke={el.color}
           strokeWidth={el.strokeWidth}
           strokeLinecap="round"
         />
-        <polygon points={`${lx2},${ly2} ${leftX},${leftY} ${rightX},${rightY}`} fill={el.color} />
+        {isArrow && (
+          <polygon points={`${lx2},${ly2} ${leftX},${leftY} ${rightX},${rightY}`} fill={el.color} />
+        )}
       </svg>
 
       {selected && (
@@ -115,19 +120,19 @@ export default function ArrowElement({ el }: Props) {
           >
             <input
               type="number"
-              aria-label="箭头粗细"
+              aria-label="线条粗细"
               value={el.strokeWidth}
               min={1}
               max={40}
-              onChange={(e) => updateArrow(el.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })}
+              onChange={(e) => updateLinear(el.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })}
             />
             <input
               type="color"
-              aria-label="箭头颜色"
+              aria-label="线条颜色"
               value={el.color}
-              onChange={(e) => updateArrow(el.id, { color: e.target.value })}
+              onChange={(e) => updateLinear(el.id, { color: e.target.value })}
             />
-            <button className="toolbar-delete-btn" onClick={() => deleteArrow(el.id)}>
+            <button className="toolbar-delete-btn" onClick={() => deleteLinear(el.id)}>
               ×
             </button>
           </div>

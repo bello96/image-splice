@@ -48,15 +48,15 @@ export default function CollageTool() {
         if (s.selectedTextId) {
           e.preventDefault()
           s.deleteText(s.selectedTextId)
-        } else if (s.selectedArrowId) {
+        } else if (s.selectedShapeId) {
           e.preventDefault()
-          s.deleteArrow(s.selectedArrowId)
-        } else if (s.selectedRectangleId) {
+          s.deleteShape(s.selectedShapeId)
+        } else if (s.selectedLinearId) {
           e.preventDefault()
-          s.deleteRectangle(s.selectedRectangleId)
-        } else if (s.selectedEllipseId) {
+          s.deleteLinear(s.selectedLinearId)
+        } else if (s.selectedBrushId) {
           e.preventDefault()
-          s.deleteEllipse(s.selectedEllipseId)
+          s.deleteBrush(s.selectedBrushId)
         }
         return
       }

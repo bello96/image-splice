@@ -251,3 +251,49 @@ export const DensityIcon = ({
     </Icon>
   )
 }
+
+/* ===================== 画布绘图工具图标 ===================== */
+
+/** 选择/移动（鼠标指针） */
+export const SelectIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+    <path d="m13 13 6 6" />
+  </Icon>
+)
+
+/** 画笔 */
+export const BrushIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08" />
+    <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z" />
+  </Icon>
+)
+
+/** 三角形 */
+export const TriangleIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <path d="M12 4 L20.5 19 L3.5 19 Z" />
+  </Icon>
+)
+
+/** 五角星 */
+export const StarIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </Icon>
+)
+
+/** 心形 */
+export const HeartIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </Icon>
+)
+
+/** 直线 */
+export const LineIcon = (p: SVGProps<SVGSVGElement> & { size?: number }) => (
+  <Icon {...p}>
+    <line x1="5" y1="19" x2="19" y2="5" />
+  </Icon>
+)

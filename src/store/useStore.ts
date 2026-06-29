@@ -25,6 +25,25 @@ export type Density =
   | 'bottom-left'
   | 'bottom-right'
 
+/** 画布绘图工具 */
+export type ToolType =
+  | 'select'
+  | 'brush'
+  | 'text'
+  | 'rect'
+  | 'ellipse'
+  | 'triangle'
+  | 'star'
+  | 'heart'
+  | 'line'
+  | 'arrow'
+
+/** 形状种类 */
+export type ShapeKind = 'rect' | 'ellipse' | 'triangle' | 'star' | 'heart'
+
+/** 线性元素种类 */
+export type LinearKind = 'line' | 'arrow'
+
 export interface TextEl {
   id: string
   /** 相对画布的像素坐标（中心点） */
@@ -35,8 +54,23 @@ export interface TextEl {
   fontSize: number
 }
 
-export interface ArrowEl {
+export interface ShapeEl {
   id: string
+  kind: ShapeKind
+  /** 左上角像素坐标 */
+  x: number
+  y: number
+  w: number
+  h: number
+  color: string
+  strokeWidth: number
+  /** 是否填充（false = 仅描边） */
+  filled: boolean
+}
+
+export interface LinearEl {
+  id: string
+  kind: LinearKind
   /** 起点像素坐标 */
   x1: number
   y1: number
@@ -47,13 +81,13 @@ export interface ArrowEl {
   strokeWidth: number
 }
 
-export interface ShapeEl {
+export interface BrushEl {
   id: string
-  /** 左上角像素坐标 */
+  /** 包围盒左上角（整体拖动偏移） */
   x: number
   y: number
-  w: number
-  h: number
+  /** 相对 (x,y) 的采样点 */
+  points: Array<[number, number]>
   color: string
   strokeWidth: number
 }
@@ -123,13 +157,19 @@ interface State {
 
   // 标注
   texts: TextEl[]
-  arrows: ArrowEl[]
-  rectangles: ShapeEl[]
-  ellipses: ShapeEl[]
+  shapes: ShapeEl[]
+  linears: LinearEl[]
+  brushes: BrushEl[]
   selectedTextId: string | null
-  selectedArrowId: string | null
-  selectedRectangleId: string | null
-  selectedEllipseId: string | null
+  selectedShapeId: string | null
+  selectedLinearId: string | null
+  selectedBrushId: string | null
+
+  // 绘图工具
+  activeTool: ToolType
+  drawColor: string
+  drawStrokeWidth: number
+  drawFilled: boolean
 
   // 水印 / 导出
   watermark: Watermark
@@ -171,26 +211,32 @@ interface State {
   updateWatermark: (partial: Partial<Watermark>) => void
   setQuality: (q: Quality) => void
 
+  // 绘图工具
+  setActiveTool: (t: ToolType) => void
+  setDrawColor: (c: string) => void
+  setDrawStrokeWidth: (n: number) => void
+  setDrawFilled: (b: boolean) => void
+
   // 标注
-  addText: () => void
+  addText: (pos: { x: number; y: number }) => void
   updateText: (id: string, partial: Partial<TextEl>) => void
   deleteText: (id: string) => void
   selectText: (id: string | null) => void
 
-  addArrow: () => void
-  updateArrow: (id: string, partial: Partial<ArrowEl>) => void
-  deleteArrow: (id: string) => void
-  selectArrow: (id: string | null) => void
+  addShape: (kind: ShapeKind, rect: { x: number; y: number; w: number; h: number }) => void
+  updateShape: (id: string, partial: Partial<ShapeEl>) => void
+  deleteShape: (id: string) => void
+  selectShape: (id: string | null) => void
 
-  addRectangle: () => void
-  updateRectangle: (id: string, partial: Partial<ShapeEl>) => void
-  deleteRectangle: (id: string) => void
-  selectRectangle: (id: string | null) => void
+  addLinear: (kind: LinearKind, pts: { x1: number; y1: number; x2: number; y2: number }) => void
+  updateLinear: (id: string, partial: Partial<LinearEl>) => void
+  deleteLinear: (id: string) => void
+  selectLinear: (id: string | null) => void
 
-  addEllipse: () => void
-  updateEllipse: (id: string, partial: Partial<ShapeEl>) => void
-  deleteEllipse: (id: string) => void
-  selectEllipse: (id: string | null) => void
+  addBrush: (data: { x: number; y: number; points: Array<[number, number]> }) => void
+  updateBrush: (id: string, partial: Partial<BrushEl>) => void
+  deleteBrush: (id: string) => void
+  selectBrush: (id: string | null) => void
 
   deselectAll: () => void
 
@@ -237,13 +283,18 @@ export const useStore = create<State>((set, get) => ({
   bgImage: null,
 
   texts: [],
-  arrows: [],
-  rectangles: [],
-  ellipses: [],
+  shapes: [],
+  linears: [],
+  brushes: [],
   selectedTextId: null,
-  selectedArrowId: null,
-  selectedRectangleId: null,
-  selectedEllipseId: null,
+  selectedShapeId: null,
+  selectedLinearId: null,
+  selectedBrushId: null,
+
+  activeTool: 'select',
+  drawColor: '#ef4444',
+  drawStrokeWidth: 4,
+  drawFilled: false,
 
   watermark: { ...DEFAULT_WATERMARK },
   downloadQuality: 'high-jpg',
@@ -363,9 +414,9 @@ export const useStore = create<State>((set, get) => ({
     set({
       activeCellId: index,
       selectedTextId: null,
-      selectedArrowId: null,
-      selectedRectangleId: null,
-      selectedEllipseId: null,
+      selectedShapeId: null,
+      selectedLinearId: null,
+      selectedBrushId: null,
     }),
 
   shuffle: () =>
@@ -393,13 +444,14 @@ export const useStore = create<State>((set, get) => ({
       imagesData: {},
       activeCellId: null,
       texts: [],
-      arrows: [],
-      rectangles: [],
-      ellipses: [],
+      shapes: [],
+      linears: [],
+      brushes: [],
       selectedTextId: null,
-      selectedArrowId: null,
-      selectedRectangleId: null,
-      selectedEllipseId: null,
+      selectedShapeId: null,
+      selectedLinearId: null,
+      selectedBrushId: null,
+      activeTool: 'select',
     }),
 
   resetSettings: () =>
@@ -425,16 +477,33 @@ export const useStore = create<State>((set, get) => ({
   updateWatermark: (partial) => set((s) => ({ watermark: { ...s.watermark, ...partial } })),
   setQuality: (q) => set({ downloadQuality: q }),
 
+  // ---- 绘图工具 ----
+  setActiveTool: (t) =>
+    set(
+      t === 'select'
+        ? { activeTool: t }
+        : {
+            activeTool: t,
+            selectedTextId: null,
+            selectedShapeId: null,
+            selectedLinearId: null,
+            selectedBrushId: null,
+            activeCellId: null,
+          },
+    ),
+  setDrawColor: (c) => set({ drawColor: c }),
+  setDrawStrokeWidth: (n) => set({ drawStrokeWidth: n }),
+  setDrawFilled: (b) => set({ drawFilled: b }),
+
   // ---- 文字 ----
-  addText: () =>
+  addText: (pos) =>
     set((s) => {
-      const off = (s.texts.length % 6) * 24
       const el: TextEl = {
         id: uid('text'),
-        x: 160 + off,
-        y: 90 + off,
+        x: pos.x,
+        y: pos.y,
         content: '双击编辑文字',
-        color: '#ffffff',
+        color: s.drawColor,
         fontSize: 28,
       }
       return { texts: [...s.texts, el], selectedTextId: el.id }
@@ -449,115 +518,110 @@ export const useStore = create<State>((set, get) => ({
   selectText: (id) =>
     set({
       selectedTextId: id,
-      selectedArrowId: null,
-      selectedRectangleId: null,
-      selectedEllipseId: null,
+      selectedShapeId: null,
+      selectedLinearId: null,
+      selectedBrushId: null,
       activeCellId: null,
     }),
 
-  // ---- 箭头 ----
-  addArrow: () =>
+  // ---- 形状（矩形/椭圆/三角/五角星/心形）----
+  addShape: (kind, rect) =>
     set((s) => {
-      const off = (s.arrows.length % 6) * 24
-      const el: ArrowEl = {
-        id: uid('arrow'),
-        x1: 120 + off,
-        y1: 200 + off,
-        x2: 260 + off,
-        y2: 200 + off,
-        color: '#ef4444',
-        strokeWidth: 6,
-      }
-      return { arrows: [...s.arrows, el], selectedArrowId: el.id }
-    }),
-  updateArrow: (id, partial) =>
-    set((s) => ({ arrows: s.arrows.map((a) => (a.id === id ? { ...a, ...partial } : a)) })),
-  deleteArrow: (id) =>
-    set((s) => ({
-      arrows: s.arrows.filter((a) => a.id !== id),
-      selectedArrowId: s.selectedArrowId === id ? null : s.selectedArrowId,
-    })),
-  selectArrow: (id) =>
-    set({
-      selectedArrowId: id,
-      selectedTextId: null,
-      selectedRectangleId: null,
-      selectedEllipseId: null,
-      activeCellId: null,
-    }),
-
-  // ---- 矩形 ----
-  addRectangle: () =>
-    set((s) => {
-      const off = (s.rectangles.length % 6) * 24
       const el: ShapeEl = {
-        id: uid('rect'),
-        x: 90 + off,
-        y: 120 + off,
-        w: 160,
-        h: 110,
-        color: '#ef4444',
-        strokeWidth: 4,
+        id: uid('shape'),
+        kind,
+        x: rect.x,
+        y: rect.y,
+        w: rect.w,
+        h: rect.h,
+        color: s.drawColor,
+        strokeWidth: s.drawStrokeWidth,
+        filled: s.drawFilled,
       }
-      return { rectangles: [...s.rectangles, el], selectedRectangleId: el.id }
+      return { shapes: [...s.shapes, el], selectedShapeId: el.id }
     }),
-  updateRectangle: (id, partial) =>
+  updateShape: (id, partial) =>
+    set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, ...partial } : sh)) })),
+  deleteShape: (id) =>
     set((s) => ({
-      rectangles: s.rectangles.map((r) => (r.id === id ? { ...r, ...partial } : r)),
+      shapes: s.shapes.filter((sh) => sh.id !== id),
+      selectedShapeId: s.selectedShapeId === id ? null : s.selectedShapeId,
     })),
-  deleteRectangle: (id) =>
-    set((s) => ({
-      rectangles: s.rectangles.filter((r) => r.id !== id),
-      selectedRectangleId: s.selectedRectangleId === id ? null : s.selectedRectangleId,
-    })),
-  selectRectangle: (id) =>
+  selectShape: (id) =>
     set({
-      selectedRectangleId: id,
+      selectedShapeId: id,
       selectedTextId: null,
-      selectedArrowId: null,
-      selectedEllipseId: null,
+      selectedLinearId: null,
+      selectedBrushId: null,
       activeCellId: null,
     }),
 
-  // ---- 椭圆 ----
-  addEllipse: () =>
+  // ---- 线性（直线/箭头）----
+  addLinear: (kind, pts) =>
     set((s) => {
-      const off = (s.ellipses.length % 6) * 24
-      const el: ShapeEl = {
-        id: uid('ellipse'),
-        x: 260 + off,
-        y: 260 + off,
-        w: 160,
-        h: 110,
-        color: '#ef4444',
-        strokeWidth: 4,
+      const el: LinearEl = {
+        id: uid('linear'),
+        kind,
+        x1: pts.x1,
+        y1: pts.y1,
+        x2: pts.x2,
+        y2: pts.y2,
+        color: s.drawColor,
+        strokeWidth: s.drawStrokeWidth,
       }
-      return { ellipses: [...s.ellipses, el], selectedEllipseId: el.id }
+      return { linears: [...s.linears, el], selectedLinearId: el.id }
     }),
-  updateEllipse: (id, partial) =>
+  updateLinear: (id, partial) =>
+    set((s) => ({ linears: s.linears.map((l) => (l.id === id ? { ...l, ...partial } : l)) })),
+  deleteLinear: (id) =>
     set((s) => ({
-      ellipses: s.ellipses.map((e) => (e.id === id ? { ...e, ...partial } : e)),
+      linears: s.linears.filter((l) => l.id !== id),
+      selectedLinearId: s.selectedLinearId === id ? null : s.selectedLinearId,
     })),
-  deleteEllipse: (id) =>
-    set((s) => ({
-      ellipses: s.ellipses.filter((e) => e.id !== id),
-      selectedEllipseId: s.selectedEllipseId === id ? null : s.selectedEllipseId,
-    })),
-  selectEllipse: (id) =>
+  selectLinear: (id) =>
     set({
-      selectedEllipseId: id,
+      selectedLinearId: id,
       selectedTextId: null,
-      selectedArrowId: null,
-      selectedRectangleId: null,
+      selectedShapeId: null,
+      selectedBrushId: null,
+      activeCellId: null,
+    }),
+
+  // ---- 画笔 ----
+  addBrush: (data) =>
+    set((s) => {
+      const el: BrushEl = {
+        id: uid('brush'),
+        x: data.x,
+        y: data.y,
+        points: data.points,
+        color: s.drawColor,
+        strokeWidth: s.drawStrokeWidth,
+      }
+      return { brushes: [...s.brushes, el], selectedBrushId: el.id }
+    }),
+  updateBrush: (id, partial) =>
+    set((s) => ({ brushes: s.brushes.map((b) => (b.id === id ? { ...b, ...partial } : b)) })),
+  deleteBrush: (id) =>
+    set((s) => ({
+      brushes: s.brushes.filter((b) => b.id !== id),
+      selectedBrushId: s.selectedBrushId === id ? null : s.selectedBrushId,
+    })),
+  selectBrush: (id) =>
+    set({
+      selectedBrushId: id,
+      selectedTextId: null,
+      selectedShapeId: null,
+      selectedLinearId: null,
       activeCellId: null,
     }),
 
   deselectAll: () =>
     set({
       selectedTextId: null,
-      selectedArrowId: null,
-      selectedRectangleId: null,
-      selectedEllipseId: null,
+      selectedShapeId: null,
+      selectedLinearId: null,
+      selectedBrushId: null,
       activeCellId: null,
     }),
 

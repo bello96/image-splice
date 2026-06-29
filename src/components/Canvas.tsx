@@ -7,8 +7,10 @@ import CanvasToolbar from './CanvasToolbar'
 import CanvasHint from './CanvasHint'
 import WatermarkLayer from './WatermarkLayer'
 import TextElement from './annotations/TextElement'
-import ArrowElement from './annotations/ArrowElement'
 import ShapeElement from './annotations/ShapeElement'
+import LinearElement from './annotations/LinearElement'
+import BrushElement from './annotations/BrushElement'
+import DrawingLayer from './DrawingLayer'
 
 /** 留白系数：让画布不贴满视口边缘，贴近原站观感 */
 const FIT_MARGIN = 0.97
@@ -41,9 +43,9 @@ export default function Canvas() {
   const colFractions = useStore((s) => s.colFractions)
   const rowFractions = useStore((s) => s.rowFractions)
   const texts = useStore((s) => s.texts)
-  const arrows = useStore((s) => s.arrows)
-  const rectangles = useStore((s) => s.rectangles)
-  const ellipses = useStore((s) => s.ellipses)
+  const shapes = useStore((s) => s.shapes)
+  const linears = useStore((s) => s.linears)
+  const brushes = useStore((s) => s.brushes)
   const deselectAll = useStore((s) => s.deselectAll)
 
   const def = customLayouts[currentLayoutId] || LAYOUTS[currentLayoutId] || LAYOUTS['1-full']
@@ -146,18 +148,20 @@ export default function Canvas() {
 
           <WatermarkLayer />
 
+          {shapes.map((sh) => (
+            <ShapeElement key={sh.id} el={sh} />
+          ))}
+          {linears.map((l) => (
+            <LinearElement key={l.id} el={l} />
+          ))}
+          {brushes.map((b) => (
+            <BrushElement key={b.id} el={b} />
+          ))}
           {texts.map((t) => (
             <TextElement key={t.id} el={t} />
           ))}
-          {arrows.map((a) => (
-            <ArrowElement key={a.id} el={a} />
-          ))}
-          {rectangles.map((r) => (
-            <ShapeElement key={r.id} el={r} kind="rect" />
-          ))}
-          {ellipses.map((e) => (
-            <ShapeElement key={e.id} el={e} kind="ellipse" />
-          ))}
+
+          <DrawingLayer />
         </div>
       </div>
       <CanvasHint hasImages={Object.keys(imagesData).length > 0 && cellCount > 0} />

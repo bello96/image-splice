@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas'
-import type { Quality } from '../store/useStore'
+import { useStore, type Quality } from '../store/useStore'
+import { svgPathTriangle, svgPathStar, svgPathHeart, pointsToPath } from './shapes'
 
 function getWrapper(): HTMLElement | null {
   return (window as unknown as { __collageWrapper?: HTMLElement | null }).__collageWrapper ?? null
@@ -32,7 +33,7 @@ async function renderCanvas(quality: Quality, bgColor: string): Promise<HTMLCanv
   const w = el.offsetWidth
   const h = el.offsetHeight
   const scale = computeScale(quality, w, h)
-  return html2canvas(el, {
+  const canvas = await html2canvas(el, {
     useCORS: true,
     allowTaint: false,
     backgroundColor: bgColor || '#FFFFFF',
@@ -41,6 +42,112 @@ async function renderCanvas(quality: Quality, bgColor: string): Promise<HTMLCanv
     removeContainer: true,
     scale,
   })
+  // html2canvas 不渲染 inline SVG 标注，这里用 Canvas 2D 手绘标注作为可靠回退
+  const ctx = canvas.getContext('2d')
+  if (ctx && w > 0 && h > 0) {
+    drawAnnotations(ctx, canvas.width / w, canvas.height / h)
+  }
+  return canvas
+}
+
+/** 把画布标注（形状 / 直线箭头 / 画笔 / 文字）手绘到导出 canvas 上 */
+function drawAnnotations(ctx: CanvasRenderingContext2D, sx: number, sy: number): void {
+  const s = useStore.getState()
+  ctx.save()
+  ctx.scale(sx, sy)
+
+  // 形状：矩形 / 椭圆 / 三角 / 五角星 / 心形
+  for (const sh of s.shapes) {
+    ctx.save()
+    const inset = sh.filled ? 0 : sh.strokeWidth / 2
+    const iw = Math.max(1, sh.w - inset * 2)
+    const ih = Math.max(1, sh.h - inset * 2)
+    ctx.translate(sh.x + inset, sh.y + inset)
+    ctx.lineWidth = sh.strokeWidth
+    ctx.strokeStyle = sh.color
+    ctx.fillStyle = sh.color
+    ctx.lineJoin = 'round'
+    let path: Path2D
+    if (sh.kind === 'rect') {
+      path = new Path2D()
+      path.rect(0, 0, iw, ih)
+    } else if (sh.kind === 'ellipse') {
+      path = new Path2D()
+      path.ellipse(iw / 2, ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2)
+    } else if (sh.kind === 'triangle') {
+      path = new Path2D(svgPathTriangle(iw, ih))
+    } else if (sh.kind === 'star') {
+      path = new Path2D(svgPathStar(iw, ih))
+    } else {
+      path = new Path2D(svgPathHeart(iw, ih))
+    }
+    if (sh.filled) {
+      ctx.fill(path)
+    } else {
+      ctx.stroke(path)
+    }
+    ctx.restore()
+  }
+
+  // 直线 / 箭头
+  for (const l of s.linears) {
+    ctx.save()
+    ctx.strokeStyle = l.color
+    ctx.fillStyle = l.color
+    ctx.lineWidth = l.strokeWidth
+    ctx.lineCap = 'round'
+    const angle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1)
+    if (l.kind === 'arrow') {
+      const headLen = Math.max(14, l.strokeWidth * 3.2)
+      const headW = Math.max(10, l.strokeWidth * 2.4)
+      const hx = l.x2 - headLen * Math.cos(angle)
+      const hy = l.y2 - headLen * Math.sin(angle)
+      ctx.beginPath()
+      ctx.moveTo(l.x1, l.y1)
+      ctx.lineTo(hx, hy)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(l.x2, l.y2)
+      ctx.lineTo(hx + headW * Math.cos(angle + Math.PI / 2), hy + headW * Math.sin(angle + Math.PI / 2))
+      ctx.lineTo(hx + headW * Math.cos(angle - Math.PI / 2), hy + headW * Math.sin(angle - Math.PI / 2))
+      ctx.closePath()
+      ctx.fill()
+    } else {
+      ctx.beginPath()
+      ctx.moveTo(l.x1, l.y1)
+      ctx.lineTo(l.x2, l.y2)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // 画笔
+  for (const b of s.brushes) {
+    ctx.save()
+    ctx.translate(b.x, b.y)
+    ctx.strokeStyle = b.color
+    ctx.lineWidth = b.strokeWidth
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke(new Path2D(pointsToPath(b.points)))
+    ctx.restore()
+  }
+
+  // 文字
+  for (const t of s.texts) {
+    ctx.save()
+    ctx.fillStyle = t.color
+    ctx.font = `${t.fontSize}px Inter, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    const lines = t.content.split('\n')
+    const lineHeight = t.fontSize * 1.25
+    const startY = t.y - ((lines.length - 1) * lineHeight) / 2
+    lines.forEach((line, i) => ctx.fillText(line, t.x, startY + i * lineHeight))
+    ctx.restore()
+  }
+
+  ctx.restore()
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, quality: Quality): Promise<Blob> {
