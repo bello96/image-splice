@@ -15,7 +15,7 @@ export default function ShapeElement({ el }: Props) {
   const selected = useStore((s) => s.selectedShapeId === el.id)
   const select = useStore((s) => s.selectShape)
   const update = useStore((s) => s.updateShape)
-  const remove = useStore((s) => s.deleteShape)
+  const commit = useStore((s) => s.commitHistory)
   const dragging = useRef(false)
 
   const containerStyle: CSSProperties = {
@@ -36,7 +36,7 @@ export default function ShapeElement({ el }: Props) {
   const path = shapeToPath(el.kind, iw, ih)
 
   const startMove = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('.resize-handle, .shape-toolbar')) {
+    if ((e.target as HTMLElement).closest('.resize-handle')) {
       return
     }
     e.stopPropagation()
@@ -52,6 +52,7 @@ export default function ShapeElement({ el }: Props) {
       dragging.current = false
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -87,6 +88,7 @@ export default function ShapeElement({ el }: Props) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -133,32 +135,6 @@ export default function ShapeElement({ el }: Props) {
 
       {selected && (
         <>
-          <div className="shape-toolbar" onPointerDown={(e) => e.stopPropagation()}>
-            <input
-              type="number"
-              aria-label="边框粗细"
-              value={el.strokeWidth}
-              min={1}
-              max={40}
-              onChange={(e) => update(el.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })}
-            />
-            <input
-              type="color"
-              aria-label="颜色"
-              value={el.color}
-              onChange={(e) => update(el.id, { color: e.target.value })}
-            />
-            <button
-              className={`toolbar-fill-btn${el.filled ? ' active' : ''}`}
-              title={el.filled ? '当前：填充' : '当前：描边'}
-              onClick={() => update(el.id, { filled: !el.filled })}
-            >
-              {el.filled ? '实心' : '空心'}
-            </button>
-            <button className="toolbar-delete-btn" onClick={() => remove(el.id)}>
-              ×
-            </button>
-          </div>
           {DIRS.map((d) => (
             <div key={d} className={`resize-handle ${d}`} onPointerDown={startResize(d)} />
           ))}

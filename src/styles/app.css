@@ -182,7 +182,7 @@ input[type="file"] {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(var(--nav-height) - 8px);
+  top: calc(var(--nav-height) - 14px);
   right: 0;
   width: 380px;
   max-height: calc(100vh - var(--nav-height) - 2rem);
@@ -214,7 +214,8 @@ input[type="file"] {
   color: var(--text-primary);
   margin: 0 0 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #f4f5f7;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1.2rem;
 }
 
 .tool-items-grid {
@@ -445,7 +446,7 @@ input[type="file"] {
   display: grid;
   grid-template-rows: auto 1fr;
   justify-items: center;
-  padding: 2rem;
+  padding: 0 2rem 2rem;
   height: calc(100vh - var(--nav-height));
   overflow: hidden;
   position: relative;
@@ -453,38 +454,40 @@ input[type="file"] {
 
 #canvas-action-toolbar {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 12px 0 16px;
   padding: 8px 10px;
   background-color: #fff;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(9, 30, 66, 0.08);
-  width: 100%;
-  max-width: 780px;
+  width: auto;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .tb-group {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .tb-divider {
   width: 1px;
-  height: 26px;
+  height: 24px;
   background: var(--border-color);
-  margin: 0 2px;
+  margin: 0 1px;
   flex-shrink: 0;
 }
 
 /* 圆形工具按钮 */
 .tool-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -526,8 +529,8 @@ input[type="file"] {
 }
 
 .tb-color-btn {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 5px;
   border: 1px solid rgba(9, 30, 66, 0.15);
   padding: 0;
@@ -543,8 +546,8 @@ input[type="file"] {
 }
 
 .tb-color-custom {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 1px solid var(--border-color);
   border-radius: 5px;
@@ -554,8 +557,8 @@ input[type="file"] {
 
 /* 线宽选择 */
 .tb-width-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   border: none;
   background: transparent;
@@ -868,7 +871,7 @@ input[type="file"] {
 .settings-body {
   padding-top: 1rem;
   margin-top: 1rem;
-  border-top: 1px solid var(--border-color);
+  /* border-top: 1px solid var(--border-color); */
 }
 
 #reset-settings-btn {
@@ -1217,90 +1220,19 @@ input[type="color"]::-webkit-color-swatch {
 
 .text-content {
   cursor: move;
-  padding: 8px 12px;
-  white-space: pre-wrap;
   outline: none;
-  font-weight: 700;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .text-content:focus {
   cursor: text;
 }
 
-.text-toolbar,
 .delete-text-button {
   display: none;
 }
 
-.text-element-container.selected .text-toolbar,
-.text-element-container.selected .delete-text-button,
-.shape-container.selected .shape-toolbar {
+.text-element-container.selected .delete-text-button {
   display: flex;
-}
-
-.text-toolbar,
-.shape-toolbar {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
-  background: #2d3748;
-  color: #fff;
-  padding: 8px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  align-items: center;
-  gap: 10px;
-  z-index: 20;
-}
-
-.shape-toolbar {
-  top: -45px;
-  bottom: auto;
-  margin-bottom: 0;
-}
-
-.text-toolbar input[type="number"],
-.shape-toolbar input[type="number"] {
-  width: 56px;
-  background-color: #4a5568;
-  border: 1px solid #718096;
-  color: #fff;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-.text-toolbar input[type="color"],
-.shape-toolbar input[type="color"] {
-  width: 32px;
-  height: 32px;
-  padding: 2px;
-  border: none;
-  background: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.toolbar-delete-btn {
-  background: #ef4444;
-  color: #fff;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  line-height: 1;
-  transition: background-color 0.2s;
-}
-
-.toolbar-delete-btn:hover {
-  background: #dc2626;
 }
 
 .delete-text-button {
@@ -1916,7 +1848,7 @@ input[type="color"]::-webkit-color-swatch {
     display: block;
   }
   #center-content {
-    padding: 1rem;
+    padding: 0 1rem 1rem;
   }
   #left-sidebar,
   #right-sidebar {
@@ -1942,7 +1874,7 @@ input[type="color"]::-webkit-color-swatch {
     transform: translateX(0);
   }
   #canvas-action-toolbar {
-    justify-content: center;
+    justify-content: flex-start;
     gap: 4px;
   }
   #canvas-hint {

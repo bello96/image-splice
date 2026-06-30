@@ -279,6 +279,15 @@ export default function RightSidebar() {
                   />
                 </div>
                 <div>
+                  <label className="form-label">水印颜色</label>
+                  <input
+                    type="color"
+                    aria-label="水印颜色"
+                    value={watermark.color}
+                    onChange={(e) => updateWatermark({ color: e.target.value })}
+                  />
+                </div>
+                <div>
                   <label className="form-label">
                     字号: <span>{watermark.fontSize}</span>px
                   </label>

@@ -9,7 +9,7 @@ export default function LinearElement({ el }: Props) {
   const selected = useStore((s) => s.selectedLinearId === el.id)
   const selectLinear = useStore((s) => s.selectLinear)
   const updateLinear = useStore((s) => s.updateLinear)
-  const deleteLinear = useStore((s) => s.deleteLinear)
+  const commit = useStore((s) => s.commitHistory)
   const draggingRef = useRef(false)
 
   const pad = Math.max(20, el.strokeWidth * 3 + 14)
@@ -46,7 +46,7 @@ export default function LinearElement({ el }: Props) {
   }
 
   const moveWhole = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('.arrow-handle, .text-toolbar')) {
+    if ((e.target as HTMLElement).closest('.arrow-handle')) {
       return
     }
     e.stopPropagation()
@@ -64,6 +64,7 @@ export default function LinearElement({ el }: Props) {
       draggingRef.current = false
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -85,6 +86,7 @@ export default function LinearElement({ el }: Props) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -113,29 +115,6 @@ export default function LinearElement({ el }: Props) {
 
       {selected && (
         <>
-          <div
-            className="text-toolbar"
-            style={{ bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8 }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <input
-              type="number"
-              aria-label="线条粗细"
-              value={el.strokeWidth}
-              min={1}
-              max={40}
-              onChange={(e) => updateLinear(el.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })}
-            />
-            <input
-              type="color"
-              aria-label="线条颜色"
-              value={el.color}
-              onChange={(e) => updateLinear(el.id, { color: e.target.value })}
-            />
-            <button className="toolbar-delete-btn" onClick={() => deleteLinear(el.id)}>
-              ×
-            </button>
-          </div>
           <div
             className="arrow-handle"
             style={{ left: lx1, top: ly1 }}

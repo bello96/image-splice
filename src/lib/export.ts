@@ -1,6 +1,7 @@
 import html2canvas from 'html2canvas'
 import { useStore, type Quality } from '../store/useStore'
 import { svgPathTriangle, svgPathStar, svgPathHeart, pointsToPath } from './shapes'
+import { embedSrgbInPng } from './iccProfile'
 
 function getWrapper(): HTMLElement | null {
   return (window as unknown as { __collageWrapper?: HTMLElement | null }).__collageWrapper ?? null
@@ -41,6 +42,16 @@ async function renderCanvas(quality: Quality, bgColor: string): Promise<HTMLCanv
     imageTimeout: 30000,
     removeContainer: true,
     scale,
+    onclone: (_doc, cloned) => {
+      // 导出不应包含编辑辅助元素：隐藏空格子的上传图标；
+      // 空格子背景透明，露出画布背景色而非灰色占位底（否则导出看起来像背景被污染）
+      cloned.querySelectorAll<HTMLElement>('.upload-icon-container').forEach((n) => {
+        n.style.display = 'none'
+      })
+      cloned.querySelectorAll<HTMLElement>('.grid-cell:not(.has-image)').forEach((n) => {
+        n.style.backgroundColor = 'transparent'
+      })
+    },
   })
   // html2canvas 不渲染 inline SVG 标注，这里用 Canvas 2D 手绘标注作为可靠回退
   const ctx = canvas.getContext('2d')
@@ -157,10 +168,15 @@ function canvasToBlob(canvas: HTMLCanvasElement, quality: Quality): Promise<Blob
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        if (blob) {
-          resolve(blob)
-        } else {
+        if (!blob) {
           reject(new Error('生成图片失败'))
+          return
+        }
+        if (isPng) {
+          // PNG 嵌入 sRGB 颜色声明，避免广色域查看器把 sRGB 数值当宽色域解释而偏色
+          embedSrgbInPng(blob).then(resolve).catch(() => resolve(blob))
+        } else {
+          resolve(blob)
         }
       },
       type,

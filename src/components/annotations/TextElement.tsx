@@ -10,27 +10,46 @@ export default function TextElement({ el }: Props) {
   const selectText = useStore((s) => s.selectText)
   const updateText = useStore((s) => s.updateText)
   const deleteText = useStore((s) => s.deleteText)
+  const commitHistory = useStore((s) => s.commitHistory)
 
   const contentRef = useRef<HTMLDivElement>(null)
   const editingRef = useRef(false)
 
-  // 选中态变化时同步 contentEditable 文本
+  // 文本变化时同步 contentEditable 内容
   useEffect(() => {
     if (contentRef.current && contentRef.current.innerText !== el.content) {
       contentRef.current.innerText = el.content
     }
   }, [el.content])
 
+  // 新建空文字：延迟到本次点击序列（含浏览器原生焦点处理）结束后再聚焦。
+  // 否则真实点击的 pointerup/click 会与自动聚焦抢占，焦点落不进输入框、无法打字。
+  useEffect(() => {
+    if (el.content !== '') {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      if (contentRef.current) {
+        contentRef.current.focus()
+        editingRef.current = true
+      }
+    }, 0)
+    return () => window.clearTimeout(timer)
+    // 仅在挂载时聚焦一次新建的空文字
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const containerStyle: CSSProperties = {
     left: el.x,
     top: el.y,
+    padding: 3,
   }
 
   const startDrag = (e: React.PointerEvent) => {
     if (editingRef.current) {
       return
     }
-    if ((e.target as HTMLElement).closest('.text-toolbar, .resize-handle-text, .delete-text-button')) {
+    if ((e.target as HTMLElement).closest('.resize-handle-text, .delete-text-button')) {
       return
     }
     e.stopPropagation()
@@ -45,11 +64,13 @@ export default function TextElement({ el }: Props) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commitHistory()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
 
+  // 拖右下角手柄缩放字号
   const startResize = (e: React.PointerEvent) => {
     e.stopPropagation()
     e.preventDefault()
@@ -62,9 +83,22 @@ export default function TextElement({ el }: Props) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      commitHistory()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+  }
+
+  const onBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    editingRef.current = false
+    const text = e.currentTarget.innerText.trim()
+    // 失焦时若内容为空，移除该空文字框
+    if (text === '') {
+      deleteText(el.id)
+      return
+    }
+    updateText(el.id, { content: text })
+    commitHistory()
   }
 
   return (
@@ -73,29 +107,10 @@ export default function TextElement({ el }: Props) {
       style={containerStyle}
       onPointerDown={startDrag}
     >
-      {selected && (
-        <div className="text-toolbar" onPointerDown={(e) => e.stopPropagation()}>
-          <input
-            type="number"
-            aria-label="文字字号"
-            value={el.fontSize}
-            min={8}
-            max={200}
-            onChange={(e) => updateText(el.id, { fontSize: parseInt(e.target.value, 10) || 8 })}
-          />
-          <input
-            type="color"
-            aria-label="文字颜色"
-            value={el.color}
-            onChange={(e) => updateText(el.id, { color: e.target.value })}
-          />
-        </div>
-      )}
-
       <div
         ref={contentRef}
         className="text-content"
-        style={{ color: el.color, fontSize: el.fontSize }}
+        style={{ color: el.color, fontSize: el.fontSize, padding: '2px 4px', fontWeight: 'normal', textShadow: 'none', whiteSpace: 'pre' }}
         contentEditable
         suppressContentEditableWarning
         onDoubleClick={() => {
@@ -105,10 +120,7 @@ export default function TextElement({ el }: Props) {
         onFocus={() => {
           editingRef.current = true
         }}
-        onBlur={(e) => {
-          editingRef.current = false
-          updateText(el.id, { content: e.currentTarget.innerText })
-        }}
+        onBlur={onBlur}
       >
         {el.content}
       </div>
@@ -117,7 +129,10 @@ export default function TextElement({ el }: Props) {
         <button
           className="delete-text-button"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => deleteText(el.id)}
+          onClick={() => {
+            deleteText(el.id)
+            commitHistory()
+          }}
         >
           ×
         </button>

@@ -44,19 +44,34 @@ export default function CollageTool() {
         s.deselectAll()
         return
       }
+      const isMod = e.ctrlKey || e.metaKey
+      if (isMod && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          s.redo()
+        } else {
+          s.undo()
+        }
+        return
+      }
+      if (isMod && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault()
+        s.redo()
+        return
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (s.selectedTextId) {
           e.preventDefault()
           s.deleteText(s.selectedTextId)
+          s.commitHistory()
         } else if (s.selectedShapeId) {
           e.preventDefault()
           s.deleteShape(s.selectedShapeId)
+          s.commitHistory()
         } else if (s.selectedLinearId) {
           e.preventDefault()
           s.deleteLinear(s.selectedLinearId)
-        } else if (s.selectedBrushId) {
-          e.preventDefault()
-          s.deleteBrush(s.selectedBrushId)
+          s.commitHistory()
         }
         return
       }

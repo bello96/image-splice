@@ -41,7 +41,7 @@ export default function WatermarkLayer() {
     return <div className="watermark-layer" ref={layerRef} />
   }
 
-  const textColor = '#000000'
+  const textColor = wm.color
 
   // 角落/居中：单条水印
   if (!isTiled(wm.density)) {

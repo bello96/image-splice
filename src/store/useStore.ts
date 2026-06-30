@@ -1,262 +1,321 @@
-import { create } from 'zustand'
-import { LAYOUTS, type LayoutDef } from '../data/layouts'
+import { create } from "zustand";
+import { LAYOUTS, type LayoutDef } from "../data/layouts";
 
 /** 单元格图片数据：背景定位（百分比）与缩放 */
 export interface CellImage {
-  src: string
+  src: string;
   /** background-position-x，0-100 */
-  posX: number
+  posX: number;
   /** background-position-y，0-100 */
-  posY: number
+  posY: number;
   /** 缩放系数，1 = cover */
-  scale: number
-  filename?: string
+  scale: number;
+  filename?: string;
 }
 
-export type Quality = 'high-jpg' | 'medium-jpg' | 'png'
+export type Quality = "high-jpg" | "medium-jpg" | "png";
 
 export type Density =
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'top-left'
-  | 'top-right'
-  | 'center'
-  | 'bottom-left'
-  | 'bottom-right'
+  | "low"
+  | "medium"
+  | "high"
+  | "top-left"
+  | "top-right"
+  | "center"
+  | "bottom-left"
+  | "bottom-right";
 
 /** 画布绘图工具 */
 export type ToolType =
-  | 'select'
-  | 'brush'
-  | 'text'
-  | 'rect'
-  | 'ellipse'
-  | 'triangle'
-  | 'star'
-  | 'heart'
-  | 'line'
-  | 'arrow'
+  | "select"
+  | "brush"
+  | "text"
+  | "rect"
+  | "ellipse"
+  | "triangle"
+  | "star"
+  | "heart"
+  | "line"
+  | "arrow";
 
 /** 形状种类 */
-export type ShapeKind = 'rect' | 'ellipse' | 'triangle' | 'star' | 'heart'
+export type ShapeKind = "rect" | "ellipse" | "triangle" | "star" | "heart";
 
 /** 线性元素种类 */
-export type LinearKind = 'line' | 'arrow'
+export type LinearKind = "line" | "arrow";
 
 export interface TextEl {
-  id: string
+  id: string;
   /** 相对画布的像素坐标（中心点） */
-  x: number
-  y: number
-  content: string
-  color: string
-  fontSize: number
+  x: number;
+  y: number;
+  content: string;
+  color: string;
+  fontSize: number;
 }
 
 export interface ShapeEl {
-  id: string
-  kind: ShapeKind
+  id: string;
+  kind: ShapeKind;
   /** 左上角像素坐标 */
-  x: number
-  y: number
-  w: number
-  h: number
-  color: string
-  strokeWidth: number
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  strokeWidth: number;
   /** 是否填充（false = 仅描边） */
-  filled: boolean
+  filled: boolean;
 }
 
 export interface LinearEl {
-  id: string
-  kind: LinearKind
+  id: string;
+  kind: LinearKind;
   /** 起点像素坐标 */
-  x1: number
-  y1: number
+  x1: number;
+  y1: number;
   /** 终点像素坐标 */
-  x2: number
-  y2: number
-  color: string
-  strokeWidth: number
+  x2: number;
+  y2: number;
+  color: string;
+  strokeWidth: number;
 }
 
 export interface BrushEl {
-  id: string
+  id: string;
   /** 包围盒左上角（整体拖动偏移） */
-  x: number
-  y: number
+  x: number;
+  y: number;
   /** 相对 (x,y) 的采样点 */
-  points: Array<[number, number]>
-  color: string
-  strokeWidth: number
+  points: Array<[number, number]>;
+  color: string;
+  strokeWidth: number;
+}
+
+/** 标注历史快照（仅画布标注，用于撤销/重做） */
+export interface AnnoSnapshot {
+  texts: TextEl[];
+  shapes: ShapeEl[];
+  linears: LinearEl[];
+  brushes: BrushEl[];
 }
 
 export interface BorderWidths {
-  top: number
-  right: number
-  bottom: number
-  left: number
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 }
 
 export interface Watermark {
-  enabled: boolean
-  text: string
-  fontSize: number
-  opacity: number
-  rotation: number
-  density: Density
+  enabled: boolean;
+  text: string;
+  fontSize: number;
+  opacity: number;
+  rotation: number;
+  density: Density;
+  color: string;
 }
 
 export interface ToastState {
-  message: string
-  type: 'success' | 'info' | 'error' | 'warning'
-  visible: boolean
+  message: string;
+  type: "success" | "info" | "error" | "warning";
+  visible: boolean;
   /** 自增 key，用于重复触发同一条消息时重启动画 */
-  key: number
+  key: number;
 }
 
-const DEFAULT_BORDER: BorderWidths = { top: 10, right: 10, bottom: 10, left: 10 }
+const DEFAULT_BORDER: BorderWidths = {
+  top: 10,
+  right: 10,
+  bottom: 10,
+  left: 10,
+};
 const DEFAULT_WATERMARK: Watermark = {
   enabled: false,
-  text: 'ops-coffee.com',
+  text: "默认水印",
   fontSize: 20,
   opacity: 0.25,
   rotation: 45,
-  density: 'medium',
+  density: "medium",
+  color: "#000000",
+};
+
+let _uid = 0;
+const uid = (prefix: string) =>
+  `${prefix}-${Date.now().toString(36)}-${(_uid++).toString(36)}`;
+
+/** 深拷贝四类标注，避免历史栈共享引用 */
+function snapshotAnno(s: {
+  texts: TextEl[];
+  shapes: ShapeEl[];
+  linears: LinearEl[];
+  brushes: BrushEl[];
+}): AnnoSnapshot {
+  return {
+    texts: s.texts.map((t) => ({ ...t })),
+    shapes: s.shapes.map((x) => ({ ...x })),
+    linears: s.linears.map((x) => ({ ...x })),
+    brushes: s.brushes.map((b) => ({
+      ...b,
+      points: b.points.map((p) => [p[0], p[1]] as [number, number]),
+    })),
+  };
 }
 
-let _uid = 0
-const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(_uid++).toString(36)}`
+const EMPTY_SNAPSHOT: AnnoSnapshot = {
+  texts: [],
+  shapes: [],
+  linears: [],
+  brushes: [],
+};
 
 /** 计算某个布局的单元格数量 */
 export function cellCountOf(def: LayoutDef): number {
-  return def.c ? def.c.length : def.gr[0] * def.gr[1]
+  return def.c ? def.c.length : def.gr[0] * def.gr[1];
 }
 
 interface State {
   // 布局
-  currentLayoutId: string
+  currentLayoutId: string;
   /** 运行时生成的自定义布局 */
-  customLayouts: Record<string, LayoutDef>
-  aspectRatio: string
+  customLayouts: Record<string, LayoutDef>;
+  aspectRatio: string;
   // 单元格图片，按索引存储
-  imagesData: Record<number, CellImage>
-  activeCellId: number | null
+  imagesData: Record<number, CellImage>;
+  activeCellId: number | null;
   /** 列宽比例（fr），空数组表示等分 */
-  colFractions: number[]
+  colFractions: number[];
   /** 行高比例（fr），空数组表示等分 */
-  rowFractions: number[]
+  rowFractions: number[];
 
   // 样式
-  spacing: number
-  radius: number
-  border: BorderWidths
-  bgColor: string
-  bgImage: string | null
+  spacing: number;
+  radius: number;
+  border: BorderWidths;
+  bgColor: string;
+  bgImage: string | null;
 
   // 标注
-  texts: TextEl[]
-  shapes: ShapeEl[]
-  linears: LinearEl[]
-  brushes: BrushEl[]
-  selectedTextId: string | null
-  selectedShapeId: string | null
-  selectedLinearId: string | null
-  selectedBrushId: string | null
+  texts: TextEl[];
+  shapes: ShapeEl[];
+  linears: LinearEl[];
+  brushes: BrushEl[];
+  selectedTextId: string | null;
+  selectedShapeId: string | null;
+  selectedLinearId: string | null;
+  selectedBrushId: string | null;
+
+  // 标注历史（撤销/重做）
+  annoHistory: AnnoSnapshot[];
+  annoHistoryStep: number;
 
   // 绘图工具
-  activeTool: ToolType
-  drawColor: string
-  drawStrokeWidth: number
-  drawFilled: boolean
+  activeTool: ToolType;
+  drawColor: string;
+  drawStrokeWidth: number;
+  drawFilled: boolean;
 
   // 水印 / 导出
-  watermark: Watermark
-  downloadQuality: Quality
+  watermark: Watermark;
+  downloadQuality: Quality;
 
   // UI
-  leftCollapsed: boolean
-  rightCollapsed: boolean
-  leftMobileOpen: boolean
-  rightMobileOpen: boolean
-  toast: ToastState
+  leftCollapsed: boolean;
+  rightCollapsed: boolean;
+  leftMobileOpen: boolean;
+  rightMobileOpen: boolean;
+  toast: ToastState;
 
   // ---- actions ----
-  setLayout: (id: string) => void
+  setLayout: (id: string) => void;
   /** 应用自定义布局编辑器产出的布局定义 */
-  applyEditorLayout: (def: LayoutDef) => void
-  setAspectRatio: (r: string) => void
+  applyEditorLayout: (def: LayoutDef) => void;
+  setAspectRatio: (r: string) => void;
 
-  setCellImage: (index: number, img: CellImage) => void
-  addFiles: (files: File[]) => Promise<void>
-  replaceCellImage: (index: number, file: File) => Promise<void>
-  removeCellImage: (index: number) => void
-  swapCells: (a: number, b: number) => void
-  panCell: (index: number, dxPct: number, dyPct: number) => void
-  zoomCell: (index: number, delta: number) => void
-  selectCell: (index: number | null) => void
-  shuffle: () => void
-  clearCanvas: () => void
-  resetSettings: () => void
+  setCellImage: (index: number, img: CellImage) => void;
+  addFiles: (files: File[]) => Promise<void>;
+  replaceCellImage: (index: number, file: File) => Promise<void>;
+  removeCellImage: (index: number) => void;
+  swapCells: (a: number, b: number) => void;
+  panCell: (index: number, dxPct: number, dyPct: number) => void;
+  zoomCell: (index: number, delta: number) => void;
+  selectCell: (index: number | null) => void;
+  shuffle: () => void;
+  clearCanvas: () => void;
+  resetSettings: () => void;
 
-  setColFractions: (arr: number[]) => void
-  setRowFractions: (arr: number[]) => void
-  setSpacing: (v: number) => void
-  setRadius: (v: number) => void
-  setBorder: (side: keyof BorderWidths, v: number) => void
-  setBgColor: (c: string) => void
-  setBgImage: (src: string | null) => void
+  setColFractions: (arr: number[]) => void;
+  setRowFractions: (arr: number[]) => void;
+  setSpacing: (v: number) => void;
+  setRadius: (v: number) => void;
+  setBorder: (side: keyof BorderWidths, v: number) => void;
+  setBgColor: (c: string) => void;
+  setBgImage: (src: string | null) => void;
 
-  updateWatermark: (partial: Partial<Watermark>) => void
-  setQuality: (q: Quality) => void
+  updateWatermark: (partial: Partial<Watermark>) => void;
+  setQuality: (q: Quality) => void;
 
   // 绘图工具
-  setActiveTool: (t: ToolType) => void
-  setDrawColor: (c: string) => void
-  setDrawStrokeWidth: (n: number) => void
-  setDrawFilled: (b: boolean) => void
+  setActiveTool: (t: ToolType) => void;
+  setDrawColor: (c: string) => void;
+  setDrawStrokeWidth: (n: number) => void;
+  setDrawFilled: (b: boolean) => void;
 
   // 标注
-  addText: (pos: { x: number; y: number }) => void
-  updateText: (id: string, partial: Partial<TextEl>) => void
-  deleteText: (id: string) => void
-  selectText: (id: string | null) => void
+  addText: (pos: { x: number; y: number }) => void;
+  updateText: (id: string, partial: Partial<TextEl>) => void;
+  deleteText: (id: string) => void;
+  selectText: (id: string | null) => void;
 
-  addShape: (kind: ShapeKind, rect: { x: number; y: number; w: number; h: number }) => void
-  updateShape: (id: string, partial: Partial<ShapeEl>) => void
-  deleteShape: (id: string) => void
-  selectShape: (id: string | null) => void
+  addShape: (
+    kind: ShapeKind,
+    rect: { x: number; y: number; w: number; h: number },
+  ) => void;
+  updateShape: (id: string, partial: Partial<ShapeEl>) => void;
+  deleteShape: (id: string) => void;
+  selectShape: (id: string | null) => void;
 
-  addLinear: (kind: LinearKind, pts: { x1: number; y1: number; x2: number; y2: number }) => void
-  updateLinear: (id: string, partial: Partial<LinearEl>) => void
-  deleteLinear: (id: string) => void
-  selectLinear: (id: string | null) => void
+  addLinear: (
+    kind: LinearKind,
+    pts: { x1: number; y1: number; x2: number; y2: number },
+  ) => void;
+  updateLinear: (id: string, partial: Partial<LinearEl>) => void;
+  deleteLinear: (id: string) => void;
+  selectLinear: (id: string | null) => void;
 
-  addBrush: (data: { x: number; y: number; points: Array<[number, number]> }) => void
-  updateBrush: (id: string, partial: Partial<BrushEl>) => void
-  deleteBrush: (id: string) => void
-  selectBrush: (id: string | null) => void
+  addBrush: (data: {
+    x: number;
+    y: number;
+    points: Array<[number, number]>;
+  }) => void;
+  updateBrush: (id: string, partial: Partial<BrushEl>) => void;
+  deleteBrush: (id: string) => void;
+  selectBrush: (id: string | null) => void;
 
-  deselectAll: () => void
+  deselectAll: () => void;
+
+  commitHistory: () => void;
+  undo: () => void;
+  redo: () => void;
 
   // UI
-  toggleLeft: () => void
-  toggleRight: () => void
-  setLeftMobileOpen: (open: boolean) => void
-  setRightMobileOpen: (open: boolean) => void
-  showToast: (message: string, type?: ToastState['type']) => void
-  hideToast: () => void
+  toggleLeft: () => void;
+  toggleRight: () => void;
+  setLeftMobileOpen: (open: boolean) => void;
+  setRightMobileOpen: (open: boolean) => void;
+  showToast: (message: string, type?: ToastState["type"]) => void;
+  hideToast: () => void;
 }
 
 /** 读取文件为 DataURL */
 function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 const newImage = (src: string, filename?: string): CellImage => ({
@@ -265,12 +324,12 @@ const newImage = (src: string, filename?: string): CellImage => ({
   posY: 50,
   scale: 1,
   filename,
-})
+});
 
 export const useStore = create<State>((set, get) => ({
-  currentLayoutId: '1-full',
+  currentLayoutId: "1-full",
   customLayouts: {},
-  aspectRatio: '1/1',
+  aspectRatio: "1/1",
   imagesData: {},
   activeCellId: null,
   colFractions: [],
@@ -279,7 +338,7 @@ export const useStore = create<State>((set, get) => ({
   spacing: 10,
   radius: 8,
   border: { ...DEFAULT_BORDER },
-  bgColor: '#FFFFFF',
+  bgColor: "#FFFFFF",
   bgImage: null,
 
   texts: [],
@@ -291,30 +350,38 @@ export const useStore = create<State>((set, get) => ({
   selectedLinearId: null,
   selectedBrushId: null,
 
-  activeTool: 'select',
-  drawColor: '#ef4444',
+  annoHistory: [EMPTY_SNAPSHOT],
+  annoHistoryStep: 0,
+
+  activeTool: "select",
+  drawColor: "#ef4444",
   drawStrokeWidth: 4,
   drawFilled: false,
 
   watermark: { ...DEFAULT_WATERMARK },
-  downloadQuality: 'high-jpg',
+  downloadQuality: "high-jpg",
 
   leftCollapsed: false,
   rightCollapsed: false,
   leftMobileOpen: false,
   rightMobileOpen: false,
-  toast: { message: '', type: 'info', visible: false, key: 0 },
+  toast: { message: "", type: "info", visible: false, key: 0 },
 
   setLayout: (id) => {
-    const def = LAYOUTS[id] || get().customLayouts[id]
+    const def = LAYOUTS[id] || get().customLayouts[id];
     if (!def) {
-      return
+      return;
     }
-    set({ currentLayoutId: id, activeCellId: null, colFractions: [], rowFractions: [] })
+    set({
+      currentLayoutId: id,
+      activeCellId: null,
+      colFractions: [],
+      rowFractions: [],
+    });
   },
 
   applyEditorLayout: (def) => {
-    const id = uid('custom')
+    const id = uid("custom");
     // 与原站一致：自定义布局为会话级，仅保留当前确认的这一个，刷新后消失
     set({
       customLayouts: { [id]: def },
@@ -323,7 +390,7 @@ export const useStore = create<State>((set, get) => ({
       activeCellId: null,
       colFractions: [],
       rowFractions: [],
-    })
+    });
   },
 
   setAspectRatio: (r) => set({ aspectRatio: r }),
@@ -333,81 +400,88 @@ export const useStore = create<State>((set, get) => ({
 
   addFiles: async (files) => {
     if (!files.length) {
-      return
+      return;
     }
-    const def = LAYOUTS[get().currentLayoutId]
-    const total = cellCountOf(def)
-    const data = { ...get().imagesData }
-    let cursor = 0
+    const def = LAYOUTS[get().currentLayoutId];
+    const total = cellCountOf(def);
+    const data = { ...get().imagesData };
+    let cursor = 0;
     for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        continue
+      if (!file.type.startsWith("image/")) {
+        continue;
       }
       // 找下一个空单元格
       while (cursor < total && data[cursor]) {
-        cursor++
+        cursor++;
       }
       if (cursor >= total) {
-        break
+        break;
       }
-      const src = await readFileAsDataURL(file)
-      data[cursor] = newImage(src, file.name)
-      cursor++
+      const src = await readFileAsDataURL(file);
+      data[cursor] = newImage(src, file.name);
+      cursor++;
     }
-    set({ imagesData: data })
+    set({ imagesData: data });
   },
 
   replaceCellImage: async (index, file) => {
-    if (!file.type.startsWith('image/')) {
-      return
+    if (!file.type.startsWith("image/")) {
+      return;
     }
-    const src = await readFileAsDataURL(file)
-    set((s) => ({ imagesData: { ...s.imagesData, [index]: newImage(src, file.name) } }))
+    const src = await readFileAsDataURL(file);
+    set((s) => ({
+      imagesData: { ...s.imagesData, [index]: newImage(src, file.name) },
+    }));
   },
 
   removeCellImage: (index) =>
     set((s) => {
-      const data = { ...s.imagesData }
-      delete data[index]
-      return { imagesData: data, activeCellId: s.activeCellId === index ? null : s.activeCellId }
+      const data = { ...s.imagesData };
+      delete data[index];
+      return {
+        imagesData: data,
+        activeCellId: s.activeCellId === index ? null : s.activeCellId,
+      };
     }),
 
   swapCells: (a, b) =>
     set((s) => {
-      const data = { ...s.imagesData }
-      const tmp = data[a]
+      const data = { ...s.imagesData };
+      const tmp = data[a];
       if (data[b]) {
-        data[a] = data[b]
+        data[a] = data[b];
       } else {
-        delete data[a]
+        delete data[a];
       }
       if (tmp) {
-        data[b] = tmp
+        data[b] = tmp;
       } else {
-        delete data[b]
+        delete data[b];
       }
-      return { imagesData: data }
+      return { imagesData: data };
     }),
 
   panCell: (index, dxPct, dyPct) =>
     set((s) => {
-      const img = s.imagesData[index]
+      const img = s.imagesData[index];
       if (!img) {
-        return {}
+        return {};
       }
-      const posX = Math.max(0, Math.min(100, img.posX + dxPct))
-      const posY = Math.max(0, Math.min(100, img.posY + dyPct))
-      return { imagesData: { ...s.imagesData, [index]: { ...img, posX, posY } } }
+      const posX = Math.max(0, Math.min(100, img.posX + dxPct));
+      const posY = Math.max(0, Math.min(100, img.posY + dyPct));
+      return {
+        imagesData: { ...s.imagesData, [index]: { ...img, posX, posY } },
+      };
     }),
 
   zoomCell: (index, delta) =>
     set((s) => {
-      const img = s.imagesData[index]
+      const img = s.imagesData[index];
       if (!img) {
-        return {}
+        return {};
       }
-      const scale = Math.max(1, Math.min(5, img.scale + delta))
-      return { imagesData: { ...s.imagesData, [index]: { ...img, scale } } }
+      const scale = Math.max(1, Math.min(5, img.scale + delta));
+      return { imagesData: { ...s.imagesData, [index]: { ...img, scale } } };
     }),
 
   selectCell: (index) =>
@@ -421,22 +495,22 @@ export const useStore = create<State>((set, get) => ({
 
   shuffle: () =>
     set((s) => {
-      const entries = Object.values(s.imagesData)
+      const entries = Object.values(s.imagesData);
       if (entries.length < 2) {
-        return {}
+        return {};
       }
       // Fisher-Yates 洗牌
-      const arr = [...entries]
+      const arr = [...entries];
       for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[arr[i], arr[j]] = [arr[j], arr[i]]
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
-      const data: Record<number, CellImage> = {}
-      const keys = Object.keys(s.imagesData).map(Number)
+      const data: Record<number, CellImage> = {};
+      const keys = Object.keys(s.imagesData).map(Number);
       keys.forEach((k, i) => {
-        data[k] = arr[i]
-      })
-      return { imagesData: data }
+        data[k] = arr[i];
+      });
+      return { imagesData: data };
     }),
 
   clearCanvas: () =>
@@ -451,7 +525,9 @@ export const useStore = create<State>((set, get) => ({
       selectedShapeId: null,
       selectedLinearId: null,
       selectedBrushId: null,
-      activeTool: 'select',
+      activeTool: "select",
+      annoHistory: [EMPTY_SNAPSHOT],
+      annoHistoryStep: 0,
     }),
 
   resetSettings: () =>
@@ -459,11 +535,11 @@ export const useStore = create<State>((set, get) => ({
       spacing: 10,
       radius: 8,
       border: { ...DEFAULT_BORDER },
-      bgColor: '#FFFFFF',
+      bgColor: "#FFFFFF",
       bgImage: null,
-      aspectRatio: '1/1',
+      aspectRatio: "1/1",
       watermark: { ...DEFAULT_WATERMARK },
-      downloadQuality: 'high-jpg',
+      downloadQuality: "high-jpg",
     }),
 
   setColFractions: (arr) => set({ colFractions: arr }),
@@ -474,13 +550,14 @@ export const useStore = create<State>((set, get) => ({
   setBgColor: (c) => set({ bgColor: c }),
   setBgImage: (src) => set({ bgImage: src }),
 
-  updateWatermark: (partial) => set((s) => ({ watermark: { ...s.watermark, ...partial } })),
+  updateWatermark: (partial) =>
+    set((s) => ({ watermark: { ...s.watermark, ...partial } })),
   setQuality: (q) => set({ downloadQuality: q }),
 
   // ---- 绘图工具 ----
   setActiveTool: (t) =>
     set(
-      t === 'select'
+      t === "select"
         ? { activeTool: t }
         : {
             activeTool: t,
@@ -499,17 +576,19 @@ export const useStore = create<State>((set, get) => ({
   addText: (pos) =>
     set((s) => {
       const el: TextEl = {
-        id: uid('text'),
+        id: uid("text"),
         x: pos.x,
         y: pos.y,
-        content: '双击编辑文字',
+        content: "",
         color: s.drawColor,
         fontSize: 28,
-      }
-      return { texts: [...s.texts, el], selectedTextId: el.id }
+      };
+      return { texts: [...s.texts, el], selectedTextId: el.id };
     }),
   updateText: (id, partial) =>
-    set((s) => ({ texts: s.texts.map((t) => (t.id === id ? { ...t, ...partial } : t)) })),
+    set((s) => ({
+      texts: s.texts.map((t) => (t.id === id ? { ...t, ...partial } : t)),
+    })),
   deleteText: (id) =>
     set((s) => ({
       texts: s.texts.filter((t) => t.id !== id),
@@ -528,7 +607,7 @@ export const useStore = create<State>((set, get) => ({
   addShape: (kind, rect) =>
     set((s) => {
       const el: ShapeEl = {
-        id: uid('shape'),
+        id: uid("shape"),
         kind,
         x: rect.x,
         y: rect.y,
@@ -537,11 +616,13 @@ export const useStore = create<State>((set, get) => ({
         color: s.drawColor,
         strokeWidth: s.drawStrokeWidth,
         filled: s.drawFilled,
-      }
-      return { shapes: [...s.shapes, el], selectedShapeId: el.id }
+      };
+      return { shapes: [...s.shapes, el], selectedShapeId: null };
     }),
   updateShape: (id, partial) =>
-    set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, ...partial } : sh)) })),
+    set((s) => ({
+      shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, ...partial } : sh)),
+    })),
   deleteShape: (id) =>
     set((s) => ({
       shapes: s.shapes.filter((sh) => sh.id !== id),
@@ -560,7 +641,7 @@ export const useStore = create<State>((set, get) => ({
   addLinear: (kind, pts) =>
     set((s) => {
       const el: LinearEl = {
-        id: uid('linear'),
+        id: uid("linear"),
         kind,
         x1: pts.x1,
         y1: pts.y1,
@@ -568,11 +649,13 @@ export const useStore = create<State>((set, get) => ({
         y2: pts.y2,
         color: s.drawColor,
         strokeWidth: s.drawStrokeWidth,
-      }
-      return { linears: [...s.linears, el], selectedLinearId: el.id }
+      };
+      return { linears: [...s.linears, el], selectedLinearId: null };
     }),
   updateLinear: (id, partial) =>
-    set((s) => ({ linears: s.linears.map((l) => (l.id === id ? { ...l, ...partial } : l)) })),
+    set((s) => ({
+      linears: s.linears.map((l) => (l.id === id ? { ...l, ...partial } : l)),
+    })),
   deleteLinear: (id) =>
     set((s) => ({
       linears: s.linears.filter((l) => l.id !== id),
@@ -591,17 +674,19 @@ export const useStore = create<State>((set, get) => ({
   addBrush: (data) =>
     set((s) => {
       const el: BrushEl = {
-        id: uid('brush'),
+        id: uid("brush"),
         x: data.x,
         y: data.y,
         points: data.points,
         color: s.drawColor,
         strokeWidth: s.drawStrokeWidth,
-      }
-      return { brushes: [...s.brushes, el], selectedBrushId: el.id }
+      };
+      return { brushes: [...s.brushes, el], selectedBrushId: null };
     }),
   updateBrush: (id, partial) =>
-    set((s) => ({ brushes: s.brushes.map((b) => (b.id === id ? { ...b, ...partial } : b)) })),
+    set((s) => ({
+      brushes: s.brushes.map((b) => (b.id === id ? { ...b, ...partial } : b)),
+    })),
   deleteBrush: (id) =>
     set((s) => ({
       brushes: s.brushes.filter((b) => b.id !== id),
@@ -625,12 +710,69 @@ export const useStore = create<State>((set, get) => ({
       activeCellId: null,
     }),
 
+  commitHistory: () =>
+    set((s) => {
+      const base = s.annoHistory.slice(0, s.annoHistoryStep + 1);
+      const next = [...base, snapshotAnno(s)];
+      // 限制历史长度，避免无限增长
+      const capped = next.length > 100 ? next.slice(next.length - 100) : next;
+      return { annoHistory: capped, annoHistoryStep: capped.length - 1 };
+    }),
+
+  undo: () =>
+    set((s) => {
+      if (s.annoHistoryStep <= 0) {
+        return {};
+      }
+      const step = s.annoHistoryStep - 1;
+      const snap = s.annoHistory[step];
+      return {
+        texts: snap.texts.map((t) => ({ ...t })),
+        shapes: snap.shapes.map((x) => ({ ...x })),
+        linears: snap.linears.map((x) => ({ ...x })),
+        brushes: snap.brushes.map((b) => ({
+          ...b,
+          points: b.points.map((p) => [p[0], p[1]] as [number, number]),
+        })),
+        annoHistoryStep: step,
+        selectedTextId: null,
+        selectedShapeId: null,
+        selectedLinearId: null,
+        selectedBrushId: null,
+      };
+    }),
+
+  redo: () =>
+    set((s) => {
+      if (s.annoHistoryStep >= s.annoHistory.length - 1) {
+        return {};
+      }
+      const step = s.annoHistoryStep + 1;
+      const snap = s.annoHistory[step];
+      return {
+        texts: snap.texts.map((t) => ({ ...t })),
+        shapes: snap.shapes.map((x) => ({ ...x })),
+        linears: snap.linears.map((x) => ({ ...x })),
+        brushes: snap.brushes.map((b) => ({
+          ...b,
+          points: b.points.map((p) => [p[0], p[1]] as [number, number]),
+        })),
+        annoHistoryStep: step,
+        selectedTextId: null,
+        selectedShapeId: null,
+        selectedLinearId: null,
+        selectedBrushId: null,
+      };
+    }),
+
   // ---- UI ----
   toggleLeft: () => set((s) => ({ leftCollapsed: !s.leftCollapsed })),
   toggleRight: () => set((s) => ({ rightCollapsed: !s.rightCollapsed })),
   setLeftMobileOpen: (open) => set({ leftMobileOpen: open }),
   setRightMobileOpen: (open) => set({ rightMobileOpen: open }),
-  showToast: (message, type = 'info') =>
-    set((s) => ({ toast: { message, type, visible: true, key: s.toast.key + 1 } })),
+  showToast: (message, type = "info") =>
+    set((s) => ({
+      toast: { message, type, visible: true, key: s.toast.key + 1 },
+    })),
   hideToast: () => set((s) => ({ toast: { ...s.toast, visible: false } })),
-}))
+}));

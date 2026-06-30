@@ -21,6 +21,7 @@ export default function DrawingLayer() {
   const addBrush = useStore((s) => s.addBrush)
   const addText = useStore((s) => s.addText)
   const setActiveTool = useStore((s) => s.setActiveTool)
+  const commitHistory = useStore((s) => s.commitHistory)
 
   const ref = useRef<HTMLDivElement>(null)
   const drawingRef = useRef(false)
@@ -44,6 +45,8 @@ export default function DrawingLayer() {
     e.stopPropagation()
     const p = toLocal(e.clientX, e.clientY)
     if (activeTool === 'text') {
+      // 文字是「创建即编辑」的特例：切回 select，让绘制覆盖层消失，
+      // 新建文字可立即聚焦输入、点击编辑、拖动（否则会被 .drawing-layer 遮挡）
       addText({ x: p.x, y: p.y })
       setActiveTool('select')
       return
@@ -96,13 +99,13 @@ export default function DrawingLayer() {
         }
         const rel = raw.map(([x, y]) => [x - minX, y - minY] as [number, number])
         addBrush({ x: minX, y: minY, points: rel })
-        setActiveTool('select')
+        commitHistory()
       }
     } else if (start && cur) {
       if (activeTool === 'line' || activeTool === 'arrow') {
         if (Math.hypot(cur.x - start.x, cur.y - start.y) >= MIN_SIZE) {
           addLinear(activeTool, { x1: start.x, y1: start.y, x2: cur.x, y2: cur.y })
-          setActiveTool('select')
+          commitHistory()
         }
       } else if (SHAPE_TOOLS.includes(activeTool)) {
         const x = Math.min(start.x, cur.x)
@@ -111,7 +114,7 @@ export default function DrawingLayer() {
         const h = Math.abs(cur.y - start.y)
         if (w >= MIN_SIZE && h >= MIN_SIZE) {
           addShape(activeTool as ShapeKind, { x, y, w, h })
-          setActiveTool('select')
+          commitHistory()
         }
       }
     }
