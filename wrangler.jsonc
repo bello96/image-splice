@@ -5,6 +5,11 @@
   //   或设置环境变量 CLOUDFLARE_API_TOKEN（与 CLOUDFLARE_ACCOUNT_ID）。
   "name": "image-splice",
   "compatibility_date": "2024-11-01",
+  // 部署前自动构建，保证 dist 存在（云端 Workers Builds 的 Build command 为 None，
+  // 全靠这里触发构建；本地 npm run deploy 同样走这条路径）
+  "build": {
+    "command": "npm run build"
+  },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
